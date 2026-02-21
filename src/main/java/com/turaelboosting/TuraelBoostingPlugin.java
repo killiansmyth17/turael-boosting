@@ -121,8 +121,9 @@ public class TuraelBoostingPlugin extends Plugin
 		MenuEntry firstEntry = menuOpened.getFirstEntry();
 		boolean isNPCMenu = firstEntry.getType() == MenuAction.NPC_FIRST_OPTION;
 		boolean npcIsTurael = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_TUREAL;
+		boolean npcIsAya = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_AYA;
 
-		if(npcIsTurael) {
+		if(npcIsTurael || npcIsAya) {
 			hideAssignmentOption();
 		}
 	}
