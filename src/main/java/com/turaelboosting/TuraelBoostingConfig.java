@@ -22,15 +22,6 @@ public interface TuraelBoostingConfig extends Config
 	}
 
 	@ConfigItem(
-			keyName = "useShortestPath",
-			name = "Use Shortest Path",
-			description = "Determines whether Shortest Path plugin will be used to path to next slayer master."
-	)
-	default boolean useShortestPath() {
-		return true;
-	}
-
-	@ConfigItem(
 			keyName = "hideTuraelAssignmentOption",
 			name = "Hide Turael's Assignment option",
 			description = "Hide Turael's Assignment option when your next task has boosted points.",
