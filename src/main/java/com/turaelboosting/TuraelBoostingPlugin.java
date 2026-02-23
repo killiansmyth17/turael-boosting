@@ -1,5 +1,6 @@
 package com.turaelboosting;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
@@ -19,6 +20,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 @Slf4j
@@ -27,6 +29,14 @@ import java.util.concurrent.Callable;
 )
 public class TuraelBoostingPlugin extends Plugin
 {
+	private static final Set<MenuAction> NPC_MENU_TYPES = ImmutableSet.of(
+		MenuAction.NPC_FIRST_OPTION,
+		MenuAction.NPC_SECOND_OPTION,
+		MenuAction.NPC_THIRD_OPTION,
+		MenuAction.NPC_FOURTH_OPTION,
+		MenuAction.NPC_FIFTH_OPTION
+	);
+
 	@Inject
 	private Client client;
 
@@ -109,17 +119,20 @@ public class TuraelBoostingPlugin extends Plugin
 		int varbitID = varbitChanged.getVarbitId();
 
 		boolean tasksInARowChanged = varbitID == VarbitID.SLAYER_TASKS_COMPLETED;
-		boolean slayerTaskChanged = varbitID == VarPlayerID.SLAYER_TARGET;
 
 		if(tasksInARowChanged) {
 			updateSlayerData();
 		}
 	}
 
+	/**
+	 * Detect opened right-click menu of Turael/Aya.
+	 * @param menuOpened The MenuOpened event.
+	 */
 	@Subscribe
 	public void onMenuOpened(MenuOpened menuOpened) {
 		MenuEntry firstEntry = menuOpened.getFirstEntry();
-		boolean isNPCMenu = firstEntry.getType() == MenuAction.NPC_FIRST_OPTION;
+		boolean isNPCMenu = NPC_MENU_TYPES.contains(firstEntry.getType());
 		boolean npcIsTurael = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_TUREAL;
 		boolean npcIsAya = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_AYA;
 
@@ -128,6 +141,32 @@ public class TuraelBoostingPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * Detect left-click menu of Turael/Aya and remove Assignment option.
+	 * @param clientTick The ClientTick event.
+	 */
+	@Subscribe
+	public void onClientTick(ClientTick clientTick) {
+		if(client.getGameState() != GameState.LOGGED_IN || client.isMenuOpen()) {
+			return;
+		}
+
+		Menu menu = client.getMenu();
+		MenuEntry[] menuEntries = menu.getMenuEntries();
+		for(MenuEntry menuEntry: menuEntries) {
+			if(NPC_MENU_TYPES.contains(menuEntry.getType())) {
+				final int npcID = menuEntry.getNpc().getId();
+				if(menuEntry.getOption().equals("Assignment") && (npcID == NpcID.SLAYER_MASTER_1_TUREAL || npcID == NpcID.SLAYER_MASTER_1_AYA)) {
+					menu.removeMenuEntry(menuEntry);
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Remove Assignment option from the menu of Turael/Aya.
+	 */
 	private void hideAssignmentOption() {
 		if(!config.hideTuraelAssignmentOption()) {
 			return;
