@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.DBTableID;
 import net.runelite.api.gameval.NpcID;
@@ -29,6 +30,7 @@ import java.util.concurrent.Callable;
 )
 public class TuraelBoostingPlugin extends Plugin
 {
+	private static final WorldPoint TURAEL_WORLD_POINT = new WorldPoint(2931, 3536, 0);
 	private static final Set<MenuAction> NPC_MENU_TYPES = ImmutableSet.of(
 		MenuAction.NPC_FIRST_OPTION,
 		MenuAction.NPC_SECOND_OPTION,
@@ -59,6 +61,9 @@ public class TuraelBoostingPlugin extends Plugin
 	@Getter
 	private boolean shouldGoToTurael;
 
+	@Getter
+	private boolean onSlayerTask;
+
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -85,8 +90,23 @@ public class TuraelBoostingPlugin extends Plugin
 	 * Updates slayer data on this instance.
 	 */
 	private void updateSlayerData() {
+		setOnSlayerTask();
 		setSlayerTasksCompleted();
 		setShouldGoToTurael();
+		handleHintArrow();
+	}
+
+	private void handleHintArrow() {
+		if(!onSlayerTask) {
+			WorldPoint slayerMasterPosition = shouldGoToTurael ? TURAEL_WORLD_POINT : config.master().location();
+			client.setHintArrow(slayerMasterPosition);
+		} else {
+			client.clearHintArrow();
+		}
+	}
+
+	private void clearHintArrow() {
+		client.clearHintArrow();
 	}
 
 	/**
@@ -95,6 +115,10 @@ public class TuraelBoostingPlugin extends Plugin
 	 */
 	private void setShouldGoToTurael() {
 		this.shouldGoToTurael = this.slayerTasksCompleted % 10 != 9;
+	}
+
+	private void setOnSlayerTask() {
+		this.onSlayerTask = client.getVarpValue(VarPlayerID.SLAYER_COUNT) > 0;
 	}
 
 	/**
@@ -119,9 +143,15 @@ public class TuraelBoostingPlugin extends Plugin
 		int varbitID = varbitChanged.getVarbitId();
 
 		boolean tasksInARowChanged = varbitID == VarbitID.SLAYER_TASKS_COMPLETED;
+		boolean taskChanged = varpID == VarPlayerID.SLAYER_COUNT;
+		boolean onTask = taskChanged && client.getVarpValue(VarPlayerID.SLAYER_COUNT) > 0;
 
 		if(tasksInARowChanged) {
 			updateSlayerData();
+		}
+
+		if(onTask) {
+			clearHintArrow();
 		}
 	}
 

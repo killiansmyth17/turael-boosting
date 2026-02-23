@@ -60,6 +60,15 @@ public class TuraelBoostingOverlay extends OverlayPanel {
                         .build()
         );
 
+        if(!plugin.isOnSlayerTask()) {
+            panelComponent.getChildren().add(
+                    TitleComponent.builder()
+                            .text("TASK COMPLETE!")
+                            .color(Color.RED)
+                            .build()
+            );
+        }
+
         return super.render(graphics);
     }
 }
