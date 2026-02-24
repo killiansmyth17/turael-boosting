@@ -75,7 +75,7 @@ public class TuraelBoostingPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
-		clientThread.invoke(this::handleHintArrow);
+		clientThread.invoke(this::removeHintArrow);
 		removeOverlay();
 		log.debug("Turael Boosting stopped!");
 	}
@@ -105,6 +105,10 @@ public class TuraelBoostingPlugin extends Plugin
 		} else {
 			client.clearHintArrow();
 		}
+	}
+
+	private void removeHintArrow() {
+		client.clearHintArrow();
 	}
 
 	/**
