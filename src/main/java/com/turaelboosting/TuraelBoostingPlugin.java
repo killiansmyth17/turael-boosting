@@ -75,10 +75,12 @@ public class TuraelBoostingPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
+		clientThread.invoke(this::handleHintArrow);
 		removeOverlay();
 		log.debug("Turael Boosting stopped!");
 	}
 
+	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged) {
 		var gameState = gameStateChanged.getGameState();
 		if(gameState == GameState.LOGGED_IN) {
@@ -103,10 +105,6 @@ public class TuraelBoostingPlugin extends Plugin
 		} else {
 			client.clearHintArrow();
 		}
-	}
-
-	private void clearHintArrow() {
-		client.clearHintArrow();
 	}
 
 	/**
@@ -142,56 +140,36 @@ public class TuraelBoostingPlugin extends Plugin
 		int varpID = varbitChanged.getVarpId();
 		int varbitID = varbitChanged.getVarbitId();
 
-		boolean tasksInARowChanged = varbitID == VarbitID.SLAYER_TASKS_COMPLETED;
 		boolean taskChanged = varpID == VarPlayerID.SLAYER_COUNT;
-		boolean onTask = taskChanged && client.getVarpValue(VarPlayerID.SLAYER_COUNT) > 0;
+		boolean tasksInARowChanged = varbitID == VarbitID.SLAYER_TASKS_COMPLETED; // Checked in case player resets their streak without slayer count changing
 
-		if(tasksInARowChanged) {
+		if(tasksInARowChanged || taskChanged) {
 			updateSlayerData();
-		}
-
-		if(onTask) {
-			clearHintArrow();
 		}
 	}
 
 	/**
-	 * Detect opened right-click menu of Turael/Aya.
+	 * Hide Assignment option on right-click menu for Turael/Aya.
 	 * @param menuOpened The MenuOpened event.
 	 */
 	@Subscribe
 	public void onMenuOpened(MenuOpened menuOpened) {
-		MenuEntry firstEntry = menuOpened.getFirstEntry();
-		boolean isNPCMenu = NPC_MENU_TYPES.contains(firstEntry.getType());
-		boolean npcIsTurael = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_TUREAL;
-		boolean npcIsAya = isNPCMenu && firstEntry.getNpc().getId() == NpcID.SLAYER_MASTER_1_AYA;
-
-		if(npcIsTurael || npcIsAya) {
-			hideAssignmentOption();
-		}
+		//TODO: Method may be pointless, because of onClientTick
+		hideAssignmentOption();
 	}
 
 	/**
-	 * Detect left-click menu of Turael/Aya and remove Assignment option.
+	 * Hide left-click Assignment option for Turael/Aya.
 	 * @param clientTick The ClientTick event.
 	 */
 	@Subscribe
 	public void onClientTick(ClientTick clientTick) {
+		// No event for mousing over an NPC seems to exist, so updating left-click option through this.
 		if(client.getGameState() != GameState.LOGGED_IN || client.isMenuOpen()) {
 			return;
 		}
 
-		Menu menu = client.getMenu();
-		MenuEntry[] menuEntries = menu.getMenuEntries();
-		for(MenuEntry menuEntry: menuEntries) {
-			if(NPC_MENU_TYPES.contains(menuEntry.getType())) {
-				final int npcID = menuEntry.getNpc().getId();
-				if(menuEntry.getOption().equals("Assignment") && (npcID == NpcID.SLAYER_MASTER_1_TUREAL || npcID == NpcID.SLAYER_MASTER_1_AYA)) {
-					menu.removeMenuEntry(menuEntry);
-				}
-			}
-		}
-
+		hideAssignmentOption();
 	}
 
 	/**
@@ -203,15 +181,20 @@ public class TuraelBoostingPlugin extends Plugin
 		}
 
 		Menu menu = client.getMenu();
-		MenuEntry assignment = null;
-		for(MenuEntry menuEntry: menu.getMenuEntries()) {
-			if(Objects.equals(menuEntry.getOption(), "Assignment")) {
-				assignment = menuEntry;
+		MenuEntry[] menuEntries = menu.getMenuEntries();
+		for(MenuEntry menuEntry: menuEntries) {
+			if(NPC_MENU_TYPES.contains(menuEntry.getType())) {
+				final int npcID = menuEntry.getNpc().getId();
+				boolean npcIsTurael = npcID == NpcID.SLAYER_MASTER_1_TUREAL;
+				boolean npcIsAya = npcID == NpcID.SLAYER_MASTER_1_AYA;
+				if(menuEntry.getOption().equals("Assignment") && (npcIsTurael || npcIsAya) && !shouldGoToTurael) {
+					menu.removeMenuEntry(menuEntry);
+				}
 			}
 		}
-
-		menu.removeMenuEntry(assignment);
 	}
+
+
 
 	@Provides
 	TuraelBoostingConfig provideConfig(ConfigManager configManager)
